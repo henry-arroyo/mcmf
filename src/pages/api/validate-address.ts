@@ -14,6 +14,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ message: 'Missing required fields' });
   }
 
+  if (!USPS_USER_ID) {
+    console.error('USPS_USER_ID is not configured');
+    return res.status(500).json({ message: 'Address validation service is not configured' });
+  }
+
   try {
     // Create XML request for USPS Address Validation API
     const xml = `
@@ -32,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Make request to USPS API
     const response = await fetch(
-      `http://production.shippingapis.com/ShippingAPI.dll?API=Verify&XML=${encodeURIComponent(xml)}`,
+      `https://secure.shippingapis.com/ShippingAPI.dll?API=Verify&XML=${encodeURIComponent(xml)}&USERID=${USPS_USER_ID}`,
       {
         method: 'GET',
         headers: {
@@ -49,20 +54,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const parser = new XMLParser();
     const result = parser.parse(xmlResponse);
 
-    // Check if address is valid
-    const isValid = !result.AddressValidateResponse?.Address?.Error;
+    // Check if there's an error in the response
+    if (result.AddressValidateResponse?.Address?.Error) {
+      return res.status(200).json({
+        isValid: false,
+        message: result.AddressValidateResponse.Address.Error.Description || 'Invalid address',
+      });
+    }
+
+    // If no error, the address is valid
+    const validatedAddress = {
+      streetAddress: result.AddressValidateResponse?.Address?.Address1,
+      city: result.AddressValidateResponse?.Address?.City,
+      state: result.AddressValidateResponse?.Address?.State,
+      zipCode: result.AddressValidateResponse?.Address?.Zip5,
+    };
+
+    // Check if any of the validated fields are empty
+    if (Object.values(validatedAddress).some(value => !value)) {
+      return res.status(200).json({
+        isValid: false,
+        message: 'Address validation returned incomplete data',
+      });
+    }
 
     return res.status(200).json({
-      isValid,
-      validatedAddress: isValid ? {
-        streetAddress: result.AddressValidateResponse?.Address?.Address1,
-        city: result.AddressValidateResponse?.Address?.City,
-        state: result.AddressValidateResponse?.Address?.State,
-        zipCode: result.AddressValidateResponse?.Address?.Zip5,
-      } : null,
+      isValid: true,
+      validatedAddress,
     });
   } catch (error) {
     console.error('Error validating address:', error);
-    return res.status(500).json({ message: 'Error validating address' });
+    return res.status(500).json({ 
+      message: 'Error validating address',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 } 

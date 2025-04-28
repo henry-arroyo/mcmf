@@ -54,7 +54,8 @@ export const CheckoutForm = ({ onSubmit, isLoading }: CheckoutFormProps) => {
       });
 
       if (!response.ok) {
-        throw new Error('Address validation failed');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Address validation failed');
       }
 
       const validationResult = await response.json();
@@ -62,9 +63,17 @@ export const CheckoutForm = ({ onSubmit, isLoading }: CheckoutFormProps) => {
       if (!validationResult.isValid) {
         form.setError('streetAddress', {
           type: 'manual',
-          message: 'Invalid address. Please check and try again.',
+          message: validationResult.message || 'Invalid address. Please check and try again.',
         });
         return;
+      }
+
+      // If address was validated and corrected, update the form with the validated address
+      if (validationResult.validatedAddress) {
+        form.setValue('streetAddress', validationResult.validatedAddress.streetAddress);
+        form.setValue('city', validationResult.validatedAddress.city);
+        form.setValue('state', validationResult.validatedAddress.state);
+        form.setValue('zipCode', validationResult.validatedAddress.zipCode);
       }
 
       onSubmit(data);
@@ -72,7 +81,7 @@ export const CheckoutForm = ({ onSubmit, isLoading }: CheckoutFormProps) => {
       console.error('Error validating address:', error);
       form.setError('streetAddress', {
         type: 'manual',
-        message: 'Error validating address. Please try again.',
+        message: error instanceof Error ? error.message : 'Error validating address. Please try again.',
       });
     }
   };

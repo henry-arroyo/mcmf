@@ -195,11 +195,17 @@ export const CartSidebar = ({ open, onOpenChange }: CartSidebarProps) => {
                 {/* Donations */}
                 {groupedTickets.donations.map((item, index) => (
                   <div key={index} className="flex items-center justify-between border-b pb-4">
-                    <div>
-                      <p className="font-medium">Donation</p>
-                      <p className="text-sm text-muted-foreground">
-                        ${item.price.toFixed(2)}
-                      </p>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={selectedItems.includes(index)}
+                        onCheckedChange={() => handleSelectItem(index)}
+                      />
+                      <div>
+                        <p className="font-medium">Donation</p>
+                        <p className="text-sm text-muted-foreground">
+                          ${item.price.toFixed(2)}
+                        </p>
+                      </div>
                     </div>
                     <Button
                       variant="ghost"
