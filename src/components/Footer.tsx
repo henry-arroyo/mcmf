@@ -49,8 +49,8 @@ export const Footer = () => {
             <h3 className="text-xl font-playfair mb-4">Contact Information</h3>
             <div className="space-y-2">
               <p>Email: info@mauiclassicalmusicfestival.org</p>
-              <p>Address: 123 Lahaina Way, Maui, HI 96761</p>
-              <p>Phone: (808) 555-0123</p>
+              <p>Address: PO Box 532573 </p>
+              <p>Kihei, HI 96753</p>
             </div>
           </div>
 
